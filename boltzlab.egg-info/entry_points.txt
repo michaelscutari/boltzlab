@@ -1,0 +1,2 @@
+[console_scripts]
+boltzlab = boltzlab.cli:cli

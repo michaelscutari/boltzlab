@@ -1,0 +1,21 @@
+Metadata-Version: 2.4
+Name: boltzlab
+Version: 0.1.1
+Summary: CLI tool for Boltz2-based structure and affinity prediction
+Author: Michael Scutari
+Requires-Python: >=3.10
+Requires-Dist: click
+Requires-Dist: biopython
+Requires-Dist: rdkit
+Requires-Dist: pytorch-lightning
+Requires-Dist: torch
+Requires-Dist: torchmetrics
+Requires-Dist: omegaconf
+Requires-Dist: numpy
+Requires-Dist: submitit
+Requires-Dist: tqdm
+Requires-Dist: boltz
+Dynamic: author
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

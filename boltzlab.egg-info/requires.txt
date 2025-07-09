@@ -1,0 +1,11 @@
+click
+biopython
+rdkit
+pytorch-lightning
+torch
+torchmetrics
+omegaconf
+numpy
+submitit
+tqdm
+boltz
