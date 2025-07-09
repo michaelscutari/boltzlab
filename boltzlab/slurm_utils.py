@@ -6,8 +6,12 @@ SLURM job management utilities for parallel prediction
 
 import os
 import shutil
+import warnings
 from pathlib import Path
 from typing import Dict, List, Any, Tuple
+
+# Suppress the pkg_resources deprecation warning from submitit
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated")
 
 import submitit
 
@@ -73,6 +77,9 @@ def boltz_job_function(job_args: Tuple[str, str, Dict]) -> Dict[str, Any]:
         fasta_path = str(Path(fasta_path).resolve())
         output_path = str(Path(output_path).resolve())
         
+        # Extract simple_output flag from boltz_params
+        simple_output = boltz_params.pop('simple_output', False)
+        
         # Ensure output directory exists
         os.makedirs(output_path, exist_ok=True)
         
@@ -83,13 +90,18 @@ def boltz_job_function(job_args: Tuple[str, str, Dict]) -> Dict[str, Any]:
             **boltz_params
         )
         
+        # Reorganize output if simple_output is requested
+        if simple_output:
+            _reorganize_simple_output(output_path, Path(fasta_path).stem)
+        
         # Add job metadata
         result.update({
             'job_status': 'completed',
             'input_fasta': fasta_path,
             'output_dir': output_path,
             'node_name': os.environ.get('SLURMD_NODENAME', 'unknown'),
-            'job_id': os.environ.get('SLURM_JOB_ID', 'unknown')
+            'job_id': os.environ.get('SLURM_JOB_ID', 'unknown'),
+            'simple_output': simple_output
         })
         
         return result
@@ -111,6 +123,80 @@ def boltz_job_function(job_args: Tuple[str, str, Dict]) -> Dict[str, Any]:
         
         # Re-raise the exception so submitit knows the job failed
         raise Exception(f"Boltz prediction failed: {str(e)}")
+
+
+def _reorganize_simple_output(output_path: str, seq_name: str):
+    """
+    Reorganize Boltz output into a simpler structure.
+    
+    From: output_path/boltz_results_seq/predictions/seq/seq_model_0.pdb
+    To:   output_path/structure.pdb
+    
+    Parameters
+    ----------
+    output_path : str
+        Output directory path
+    seq_name : str
+        Sequence name
+    """
+    try:
+        output_dir = Path(output_path)
+        
+        # Find the Boltz results directory
+        boltz_results_dir = None
+        for item in output_dir.iterdir():
+            if item.is_dir() and item.name.startswith('boltz_results_'):
+                boltz_results_dir = item
+                break
+        
+        if not boltz_results_dir:
+            print(f"Warning: Could not find boltz_results directory in {output_path}")
+            return
+            
+        # Find the predictions directory
+        predictions_dir = boltz_results_dir / "predictions" / seq_name
+        if not predictions_dir.exists():
+            print(f"Warning: Could not find predictions directory: {predictions_dir}")
+            return
+        
+        # Copy main structure file
+        structure_files = list(predictions_dir.glob(f"{seq_name}_model_*.pdb")) + \
+                         list(predictions_dir.glob(f"{seq_name}_model_*.cif"))
+        
+        if structure_files:
+            main_structure = structure_files[0]  # Take the first model
+            shutil.copy2(main_structure, output_dir / "structure.pdb" if main_structure.suffix == ".pdb" else output_dir / "structure.cif")
+            print(f"Copied structure: {main_structure.name} -> structure{main_structure.suffix}")
+        else:
+            print(f"Warning: No structure files found in {predictions_dir}")
+        
+        # Copy confidence file
+        confidence_files = list(predictions_dir.glob(f"confidence_{seq_name}_model_*.json"))
+        if confidence_files:
+            confidence_file = confidence_files[0]  # Take the first model
+            shutil.copy2(confidence_file, output_dir / "confidence.json")
+            print(f"Copied confidence: {confidence_file.name} -> confidence.json")
+        else:
+            print(f"Warning: No confidence files found in {predictions_dir}")
+        
+        # Optionally copy other useful files
+        useful_files = {
+            'pae': 'predicted_aligned_error.npz',
+            'plddt': 'per_residue_confidence.npz'
+        }
+        
+        for file_type, new_name in useful_files.items():
+            pattern = f"{file_type}_{seq_name}_model_*.npz"
+            matching_files = list(predictions_dir.glob(pattern))
+            if matching_files:
+                shutil.copy2(matching_files[0], output_dir / new_name)
+                print(f"Copied {file_type}: {matching_files[0].name} -> {new_name}")
+        
+        print(f"Simple output reorganization completed for {seq_name}")
+        
+    except Exception as e:
+        print(f"Warning: Failed to reorganize simple output for {seq_name}: {e}")
+        # Don't raise - this is a post-processing step, main prediction succeeded
 
 
 def get_job_status_summary(jobs: List[submitit.Job]) -> Dict[str, int]:

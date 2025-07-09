@@ -131,10 +131,15 @@ def predict_structure(fasta, sequence, outdir):
     type=str,
     help="Path to custom Boltz checkpoint file."
 )
+@click.option(
+    "--simple-output",
+    is_flag=True,
+    help="Reorganize output into simple structure: structure.pdb and confidence.json per protein."
+)
 def predict_parallel(
     fasta, outdir, partition, max_jobs, num_samples, 
     sampling_steps, num_recycling, output_format, resume, 
-    use_msa_server, checkpoint
+    use_msa_server, checkpoint, simple_output
 ):
     """
     Predict structures for multiple sequences in parallel using SLURM.
@@ -185,6 +190,7 @@ def predict_parallel(
         'num_samples': num_samples,
         'sampling_steps': sampling_steps,
         'output_format': output_format,
+        'simple_output': simple_output,
     }
     
     if checkpoint:

@@ -1,3 +1,6 @@
 boltz/
 .ruff_cache/
 .boltz_cache/
+test_results/
+boltzlab.egg-info/
+*.pyc
