@@ -37,7 +37,12 @@ def cli():
     type=click.Path(),
     help="Output directory where prediction results will be saved."
 )
-def predict_structure(fasta, sequence, outdir):
+@click.option(
+    "--simple-output",
+    is_flag=True,
+    help="Reorganize output into simple structure: structure.pdb and confidence.json."
+)
+def predict_structure(fasta, sequence, outdir, simple_output):
     """
     Predict 3D structure from input sequence.
     """
@@ -51,7 +56,8 @@ def predict_structure(fasta, sequence, outdir):
         result = predict_structure_fn(
             fasta_path=fasta,
             raw_sequence=sequence,
-            output_dir=outdir
+            output_dir=outdir,
+            simple_output=simple_output
         )
         click.echo(f"Prediction complete. Results saved to {result['output_dir']}")
 

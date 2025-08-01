@@ -22,6 +22,7 @@ def predict_structure(
     num_samples: int = 1,
     sampling_steps: int = 200,
     output_format: str = "mmcif",
+    simple_output: bool = False,
 ):
     os.makedirs(output_dir, exist_ok=True)
 
@@ -66,6 +67,10 @@ def predict_structure(
     if confidence_json.exists():
         with open(confidence_json) as f:
             summary = json.load(f)
+
+    if simple_output:
+        from boltzlab.slurm_utils import _reorganize_simple_output
+        _reorganize_simple_output(output_dir, model_name)
 
     return {
         "success": True,

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="boltzlab",
-    version="0.1.1",
+    version="0.1.2",
     description="CLI tool for Boltz2-based structure and affinity prediction",
     author="Michael Scutari",
     packages=find_packages(),
